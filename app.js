@@ -507,28 +507,15 @@ function renderFrame() {
   const body = args.map((s) => (FRAME_PIECE[s.pos] || ((w) => w))(s.word)).join(' ');
 
   el.classList.remove('hidden');
-  // 연산자 이름은 명사가 아니라 구일 수 있다(「쌓인 기록을 자산으로」). 조사를
-  // 붙이면 겹치므로, 이름을 그대로 지시문으로 받는 꼴을 쓴다.
+
+  // 골격 문장과 질문은 한 덩어리다. 질문이 「반대편이 있다면」처럼 지시로 시작하는데
+  // 선행어가 앞 절에 있어야 해결되기 때문이다. 따로 떼어놓으면 가리킬 것이 없다.
+  const t = twist && TWIST[twist.word];
+  const no = t && t.no ? `<sup class="frame__no">TRIZ ${t.no}</sup>` : '';
   el.innerHTML =
     `<span class="frame__body">${body}</span>` +
-    (twist ? `<span class="frame__ask"> — 이걸 「${twist.word}」 해보면?</span>` : '');
-}
-
-// 원리 이름만 찍힌 활자는 아무 생각도 불러오지 않는다. 설명은 카드를 키우지 않고
-// 조판대 아래 한 줄로 뺀다.
-function renderGloss() {
-  const el = $('gloss');
-  const found = state.slots.filter((s) => TWIST[s.word]);
-  el.classList.toggle('hidden', found.length === 0);
-  el.innerHTML = found
-    .map((s) => {
-      const t = TWIST[s.word];
-      // 번호는 원전에서 온 카드에만 붙는다. 소프트웨어 고유 연산자에는 출처가 없다.
-      const tag = t.no ? `<span class="gloss__no">TRIZ ${t.no}</span>` : '';
-      return `<p class="gloss__line">${tag}
-        <b>${s.word}</b><span class="gloss__dash">—</span>${t.hint}</p>`;
-    })
-    .join('');
+    (twist ? ` — <span class="frame__op">「${twist.word}」</span>${no}` : '') +
+    (t ? `<span class="frame__q">${t.hint}</span>` : '');
 }
 
 function renderRail() {
@@ -554,7 +541,6 @@ function renderRail() {
 function render() {
   renderStick();
   renderFrame();
-  renderGloss();
   renderRail();
   const entry = currentEntry();
   if (entry && $('note').value !== entry.note) $('note').value = entry.note;

@@ -445,7 +445,28 @@ button {
   word-break: keep-all;
 }
 
-.frame__ask { color: var(--indigo); }
+/* 연산자 이름 — 앞 절과 질문을 잇는 이음새 */
+.frame__op { color: var(--indigo); }
+
+.frame__no {
+  margin-left: 0.25rem;
+  font-family: var(--mono);
+  font-size: 0.5625rem;
+  letter-spacing: 0.04em;
+  color: var(--ink-faint);
+  vertical-align: super;
+  line-height: 0;
+}
+
+/* 질문은 줄을 바꿔 받는다. 문장과 한 덩어리지만 눈으로는 갈라 보인다. */
+.frame__q {
+  display: block;
+  margin-top: 0.375rem;
+  padding-left: 0.9375rem;
+  border-left: 2px solid var(--indigo-soft);
+  font-size: 1rem;
+  color: var(--ink-soft);
+}
 
 /* ── TRIZ 원리 풀이 ─────────────────────────────────── */
 
