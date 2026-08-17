@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="활자상자">
+<title>활자상자 — 단어 조합 발상 훈련</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- 아이콘 정의 -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-lock" viewBox="0 0 16 16">
+    <path d="M4.5 7V4.8a3.5 3.5 0 1 1 7 0V7" fill="none" stroke="currentColor" stroke-width="1.6"/>
+    <rect x="3" y="7" width="10" height="7" rx="1" fill="currentColor"/>
+  </symbol>
+  <symbol id="i-unlock" viewBox="0 0 16 16">
+    <path d="M4.5 7V4.8a3.5 3.5 0 0 1 6.9-.8" fill="none" stroke="currentColor" stroke-width="1.6"/>
+    <rect x="3" y="7" width="10" height="7" rx="1" fill="none" stroke="currentColor" stroke-width="1.4"/>
+  </symbol>
+  <symbol id="i-redraw" viewBox="0 0 16 16">
+    <path d="M13 8a5 5 0 1 1-1.6-3.7M13 2.2V5h-2.8" fill="none" stroke="currentColor"
+          stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  </symbol>
+  <symbol id="i-remove" viewBox="0 0 16 16">
+    <path d="M4 4l8 8M12 4l-8 8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+  </symbol>
+  <symbol id="i-pin" viewBox="0 0 16 16">
+    <path d="M8 1.6l1.9 3.9 4.3.6-3.1 3 .7 4.3L8 11.4l-3.8 2 .7-4.3-3.1-3 4.3-.6z"
+          fill="currentColor"/>
+  </symbol>
+  <symbol id="i-pin-o" viewBox="0 0 16 16">
+    <path d="M8 1.6l1.9 3.9 4.3.6-3.1 3 .7 4.3L8 11.4l-3.8 2 .7-4.3-3.1-3 4.3-.6z"
+          fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/>
+  </symbol>
+</svg>
+
+<div class="shell">
+
+  <header class="masthead">
+    <h1 class="masthead__title">활자상자</h1>
+    <nav class="tabs" role="tablist">
+      <button class="tab" id="tab-compose" role="tab" aria-selected="true">조판</button>
+      <button class="tab" id="tab-recall" role="tab" aria-selected="false">재발견</button>
+    </nav>
+  </header>
+
+  <!-- 조판 -->
+  <main id="view-compose" role="tabpanel" aria-labelledby="tab-compose">
+
+    <div class="rail">
+      <div class="seg" id="mode-seg" role="group" aria-label="사전">
+        <button class="seg__btn" data-mode="글감" aria-pressed="true">글감</button>
+        <button class="seg__btn" data-mode="제품" aria-pressed="false">제품</button>
+      </div>
+      <span class="rail__count">활자 <span id="count-n">3</span></span>
+      <button class="chip" id="count-lock" aria-pressed="false" title="활자 수 고정">
+        <svg><use href="#i-unlock"></use></svg><span id="count-lock-label">개수 랜덤</span>
+      </button>
+      <span class="rail__spacer"></span>
+      <span class="rail__hint">끌어서 순서 바꾸기</span>
+      <button class="chip" id="unlock-all">전부 풀기</button>
+    </div>
+
+    <div class="stick" id="stick"></div>
+    <div class="gloss hidden" id="gloss"></div>
+
+    <section class="desk">
+      <textarea class="note" id="note" spellcheck="false"
+        placeholder="떠오른 것을 적으세요. 안 적고 넘어가도 됩니다 — 넘긴 조합도 재발견에 남습니다."></textarea>
+      <div class="deskbar">
+        <button class="draw" id="draw">다시 뽑기</button>
+        <span class="kbd">Space</span>
+        <button class="pin" id="pin" aria-pressed="false">
+          <svg><use href="#i-pin-o"></use></svg>표시해두기
+        </button>
+        <span class="rail__spacer"></span>
+        <span class="saved" id="saved">저장됨</span>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- 재발견 -->
+  <main id="view-recall" class="recall hidden" role="tabpanel" aria-labelledby="tab-recall">
+    <div class="filters" id="filters">
+      <button class="chip" data-filter="note" aria-pressed="true">적은 것</button>
+      <button class="chip" data-filter="pin" aria-pressed="false">표시한 것</button>
+      <button class="chip" data-filter="skip" aria-pressed="false">그냥 넘긴 것</button>
+      <button class="chip" data-filter="all" aria-pressed="false">전체</button>
+      <span class="filters__div" aria-hidden="true"></span>
+      <button class="chip" data-modefilter="all" aria-pressed="true">두 모드</button>
+      <button class="chip" data-modefilter="글감" aria-pressed="false">글감</button>
+      <button class="chip" data-modefilter="제품" aria-pressed="false">제품</button>
+    </div>
+    <div id="wordfilter-slot"></div>
+    <div id="surfaced"></div>
+    <div class="entries" id="entries"></div>
+  </main>
+
+</div>
+
+<script src="words.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
