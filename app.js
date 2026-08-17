@@ -171,6 +171,9 @@ function renderStick() {
   state.slots.forEach((slot, i) => {
     const el = document.createElement('div');
     el.className = 'slug';
+    // 순서를 옮긴 뒤 포커스를 받을 자리. 활자 버튼에 포커스를 두면 그 뒤의
+    // Space가 「다시 뽑기」가 아니라 그 버튼을 눌러 카드를 잠근다.
+    el.tabIndex = -1;
     if (slot.wordLocked) el.classList.add('is-set');
     if (isLocked(slot)) el.classList.add('is-poslocked');
     if (slot.struck) {
@@ -376,7 +379,7 @@ function moveSlot(from, to) {
   }
   render();
   const landed = stick.querySelectorAll('.slug')[to];
-  if (landed) landed.querySelector('.slug__word').focus();
+  if (landed) landed.focus(); // 활자 버튼이 아니라 칸 자체 — Space는 뽑기로 남는다
 }
 
 // 조판을 손보면 열려 있는 기록도 같이 고쳐진다
