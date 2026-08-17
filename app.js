@@ -63,12 +63,18 @@ const pick = (list) => list[Math.floor(Math.random() * list.length)];
 
 const mode = () => MODES[state.mode];
 
+// 격틀이 있는 모드는 축이 고정이다. 없는 모드는 축까지 무작위로 뽑는다.
+const frame = () => mode().frame;
+
 // once에 걸린 축은 이미 쓰인 자리가 있으면 다시 뽑지 않는다
 function randAxis(taken = []) {
   const m = mode();
   const open = m.axes.filter((a) => !(m.once.includes(a) && taken.includes(a)));
   return pick(open.length ? open : m.axes);
 }
+
+// 격틀 모드의 칸 수는 격틀이 정한다
+const slotCount = () => (frame() ? frame().length : state.count);
 
 const randWord = (axis) => pick(mode().pools[axis]);
 
@@ -82,6 +88,11 @@ function newSlot(taken = []) {
 }
 
 function draw() {
+  if (frame()) {
+    drawFramed();
+    return;
+  }
+
   const m = mode();
   const lockedCount = state.slots.filter(isLocked).length;
 
@@ -123,6 +134,44 @@ function draw() {
   commitNew();
   render();
 }
+
+// 격틀 모드: 축은 고정이고 단어만 돈다. 자리 순서는 사용자가 드래그로 바꿔둔
+// 것을 존중한다 — 순서가 바뀌면 골격 문장도 함께 바뀐다.
+function drawFramed() {
+  state.slots = framedSlots().map((s) =>
+    s.wordLocked ? { ...s, struck: false } : { ...s, word: randWord(s.pos), struck: true }
+  );
+  state.count = state.slots.length;
+  commitNew();
+  render();
+}
+
+// 격틀의 축을 정확히 한 번씩 담은 슬롯 배열. 기존 슬롯을 재활용해 잠금을 지킨다.
+function framedSlots() {
+  const f = frame();
+  const kept = [];
+  const used = new Set();
+
+  for (const s of state.slots) {
+    if (f.includes(s.pos) && !used.has(s.pos)) {
+      used.add(s.pos);
+      kept.push({ ...s, posLocked: true });
+    }
+  }
+  for (const axis of f) {
+    if (used.has(axis)) continue;
+    used.add(axis);
+    kept.push({ pos: axis, word: randWord(axis), posLocked: true, wordLocked: false, struck: true });
+  }
+  return kept;
+}
+
+const isFramedOk = () => {
+  const f = frame();
+  if (!f) return state.slots.length > 0 && state.slots.every((s) => mode().axes.includes(s.pos));
+  const axes = state.slots.map((s) => s.pos);
+  return axes.length === f.length && f.every((a) => axes.filter((x) => x === a).length === 1);
+};
 
 // 뽑을 때마다 새 기록이 열린다. 메모를 안 써도 조합 자체는 남는다.
 function commitNew() {
@@ -181,25 +230,40 @@ function renderStick() {
       el.style.animationDelay = `${i * 35}ms`;
     }
 
-    const options = mode()
-      .axes.map((a) => `<option value="${a}"${a === slot.pos ? ' selected' : ''}>${a}</option>`)
-      .join('');
+    const framed = !!frame();
+    if (framed && slot.pos === mode().operator) el.classList.add('is-operator');
+
+    // 격틀 모드에서는 축이 고정이므로 드롭다운과 축 자물쇠 대신 자리 이름을 크게
+    // 놓는다. 「대리점」이 지금의 방식인지 대상인지를 결정하는 정보가 화면에서
+    // 가장 작고 흐리면 안 된다.
+    const head = framed
+      ? `<div class="slug__head slug__head--role">
+           <span class="slug__role">${AXIS_LABEL[slot.pos] || slot.pos}</span>
+         </div>`
+      : `<div class="slug__head">
+           <button class="slug__lock" data-act="poslock" aria-pressed="${isLocked(slot)}"
+                   title="${isLocked(slot) ? '축 고정 해제' : '축 고정'}">
+             ${icon(isLocked(slot) ? 'i-lock' : 'i-unlock')}
+           </button>
+           <select class="slug__pos" data-act="pos" aria-label="${i + 1}번째 축">${mode()
+             .axes.map((a) => `<option value="${a}"${a === slot.pos ? ' selected' : ''}>${a}</option>`)
+             .join('')}</select>
+         </div>`;
+
+    const removeBtn = framed
+      ? ''
+      : `<button class="slug__act" data-act="remove" title="이 칸 빼기"
+                 ${state.slots.length <= mode().min ? 'disabled' : ''}>${icon('i-remove')}</button>`;
 
     el.innerHTML = `
-      <div class="slug__head">
-        <button class="slug__lock" data-act="poslock" aria-pressed="${isLocked(slot)}"
-                title="${isLocked(slot) ? '축 고정 해제' : '축 고정'}">
-          ${icon(isLocked(slot) ? 'i-lock' : 'i-unlock')}
-        </button>
-        <select class="slug__pos" data-act="pos" aria-label="${i + 1}번째 축">${options}</select>
-      </div>
+      ${head}
       <button class="slug__word" data-act="wordlock" data-long="${wordScale(slot.word)}"
               title="${slot.wordLocked ? '단어 고정 해제' : '단어 고정'}">${slot.word}</button>
       <div class="slug__acts">
         <button class="slug__act" data-act="reroll" title="이 칸만 다시 뽑기">${icon('i-redraw')}</button>
-        <button class="slug__act" data-act="remove" title="이 칸 빼기"
-                ${state.slots.length <= mode().min ? 'disabled' : ''}>${icon('i-remove')}</button>
-      </div>`;
+        ${removeBtn}
+      </div>
+      ${slot.wordLocked ? '<span class="slug__pinned">고정됨</span>' : ''}`;
 
     el.addEventListener('pointerdown', (ev) => startDrag(ev, i, el));
     el.addEventListener('keydown', (ev) => {
@@ -215,19 +279,24 @@ function renderStick() {
       if (!btn || btn.tagName === 'SELECT') return;
       slotAction(btn.dataset.act, i);
     });
-    el.querySelector('[data-act="pos"]').addEventListener('change', (ev) => {
-      const s = state.slots[i];
-      s.pos = ev.target.value;
-      s.word = randWord(s.pos);
-      s.posLocked = true; // 직접 고른 축은 지켜준다
-      s.struck = true;
-      syncCurrent();
-      render();
-    });
+    const sel = el.querySelector('[data-act="pos"]');
+    if (sel) {
+      sel.addEventListener('change', (ev) => {
+        const s = state.slots[i];
+        s.pos = ev.target.value;
+        s.word = randWord(s.pos);
+        s.posLocked = true; // 직접 고른 축은 지켜준다
+        s.struck = true;
+        syncCurrent();
+        render();
+      });
+    }
 
     stick.appendChild(el);
     slot.struck = false;
   });
+
+  if (frame()) return; // 격틀 모드에는 칸을 더하거나 뺄 자리가 없다
 
   const add = document.createElement('button');
   add.className = 'addslug';
@@ -246,6 +315,9 @@ function renderStick() {
 
 function slotAction(act, i) {
   const s = state.slots[i];
+  // 격틀 모드에서는 축을 잠그거나 칸을 뺄 일이 없다
+  if (frame() && (act === 'poslock' || act === 'remove')) return;
+
   if (act === 'poslock') {
     if (s.wordLocked) {
       s.wordLocked = false;
@@ -391,6 +463,54 @@ function syncCurrent() {
   }
 }
 
+// ── 골격 문장 ───────────────────────────────────────────
+//
+// 카드를 재배열하고 조사를 붙인 것 외에 아무 정보도 더하지 않는다. 그래서 해석이
+// 아니라 통사이고, 고착 위험이 없다. 하는 일은 셋이다 — 네 카드를 하나의 명제로
+// 묶어 총칭공간을 주고, 4항 관계를 한 덩어리로 청킹하고, 자리의 역할을 조사로
+// 전달해 11px 라벨을 읽지 않아도 되게 한다.
+//
+// 글감 모드가 한국어 문법에서 공짜로 받는 것을 제품 모드에 코드로 공급한다.
+
+// 받침 판정. ㄹ은 「으로」가 아니라 「로」를 받으므로 따로 본다.
+function jong(word) {
+  const c = word.charCodeAt(word.length - 1);
+  if (Number.isNaN(c) || c < 0xac00 || c > 0xd7a3) return 'none';
+  const j = (c - 0xac00) % 28;
+  return j === 0 ? 'none' : j === 8 ? 'rieul' : 'yes';
+}
+
+const FRAME_PIECE = {
+  대상: (w) => w + (jong(w) === 'yes' || jong(w) === 'rieul' ? '이' : '가'),
+  마찰: (w) => w + (jong(w) === 'yes' || jong(w) === 'rieul' ? '을' : '를'),
+  '지금의 방식': (w) => w + (jong(w) === 'yes' ? '으로' : '로'),
+  기술: (w) => w + (jong(w) === 'yes' ? '으로' : '로'),
+};
+
+function renderFrame() {
+  const el = $('frame');
+  const f = frame();
+  if (!f) {
+    el.classList.add('hidden');
+    el.textContent = '';
+    return;
+  }
+
+  const op = mode().operator;
+  const args = state.slots.filter((s) => s.pos !== op);
+  const twist = state.slots.find((s) => s.pos === op);
+
+  // 자리 순서를 그대로 따른다 — 드래그로 순서를 바꾸면 문장도 함께 바뀐다
+  const body = args.map((s) => (FRAME_PIECE[s.pos] || ((w) => w))(s.word)).join(' ');
+
+  el.classList.remove('hidden');
+  // 조사는 인용부호 안 단어의 끝을 따른다 — 「피드백」으로, 「복제」로
+  const ro = twist && jong(twist.word) === 'yes' ? '으로' : '로';
+  el.innerHTML =
+    `<span class="frame__body">${body}</span>` +
+    (twist ? `<span class="frame__ask"> — 이걸 「${twist.word}」${ro} 비틀면?</span>` : '');
+}
+
 // 원리 이름만 찍힌 활자는 아무 생각도 불러오지 않는다. 설명은 카드를 키우지 않고
 // 조판대 아래 한 줄로 뺀다.
 function renderGloss() {
@@ -411,6 +531,8 @@ function renderRail() {
     .querySelectorAll('[data-mode]')
     .forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.mode === state.mode)));
 
+  // 격틀 모드의 칸 수는 격틀이 정하므로 조작 대상이 아니다
+  $('count-group').classList.toggle('hidden', !!frame());
   $('count-n').textContent = state.slots.length;
   const lock = $('count-lock');
   lock.setAttribute('aria-pressed', String(state.countLocked));
@@ -426,6 +548,7 @@ function renderRail() {
 
 function render() {
   renderStick();
+  renderFrame();
   renderGloss();
   renderRail();
   const entry = currentEntry();
@@ -436,6 +559,12 @@ function render() {
 // ── 모드 갈아끼우기 ─────────────────────────────────────
 
 function drawFresh() {
+  if (frame()) {
+    state.slots = [];
+    drawFramed();
+    return;
+  }
+
   const m = mode();
   const n = m.min + Math.floor(Math.random() * (m.max - m.min + 1));
   const taken = [];
@@ -461,13 +590,15 @@ function switchMode(next) {
   state.mode = next;
 
   const kept = state.stash[next];
-  const usable =
-    kept && kept.slots.length && kept.slots.every((s) => MODES[next].axes.includes(s.pos));
-
-  if (usable) {
+  if (kept && kept.slots.length) {
     state.count = kept.count;
     state.countLocked = kept.countLocked;
     state.slots = kept.slots;
+  } else {
+    state.slots = [];
+  }
+
+  if (isFramedOk()) {
     commitNew();
     render();
   } else {
@@ -621,9 +752,10 @@ $('count-lock').addEventListener('click', () => {
 });
 
 $('unlock-all').addEventListener('click', () => {
-  state.countLocked = false;
+  const framed = !!frame();
+  if (!framed) state.countLocked = false;
   state.slots.forEach((s) => {
-    s.posLocked = false;
+    if (!framed) s.posLocked = false; // 격틀 모드의 축은 풀 대상이 아니다
     s.wordLocked = false;
   });
   render();
@@ -687,10 +819,8 @@ document.addEventListener('keydown', (ev) => {
 
 // ── 시작 ────────────────────────────────────────────────
 
-// 저장된 조판이 지금 모드의 축과 맞지 않으면 새로 뽑는다
-const restorable = state.slots.length && state.slots.every((s) => mode().axes.includes(s.pos));
-
-if (restorable) {
+// 저장된 조판이 지금 모드의 격틀과 맞지 않으면 새로 뽑는다
+if (isFramedOk()) {
   if (!currentEntry()) commitNew();
   render();
 } else {

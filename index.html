@@ -56,16 +56,19 @@
         <button class="seg__btn" data-mode="글감" aria-pressed="true">글감</button>
         <button class="seg__btn" data-mode="제품" aria-pressed="false">제품</button>
       </div>
-      <span class="rail__count">활자 <span id="count-n">3</span></span>
-      <button class="chip" id="count-lock" aria-pressed="false" title="활자 수 고정">
-        <svg><use href="#i-unlock"></use></svg><span id="count-lock-label">개수 랜덤</span>
-      </button>
+      <span class="rail__group" id="count-group">
+        <span class="rail__count">활자 <span id="count-n">3</span></span>
+        <button class="chip" id="count-lock" aria-pressed="false" title="활자 수 고정">
+          <svg><use href="#i-unlock"></use></svg><span id="count-lock-label">개수 랜덤</span>
+        </button>
+      </span>
       <span class="rail__spacer"></span>
       <span class="rail__hint">끌어서 순서 바꾸기</span>
       <button class="chip" id="unlock-all">전부 풀기</button>
     </div>
 
     <div class="stick" id="stick"></div>
+    <p class="frame hidden" id="frame"></p>
     <div class="gloss hidden" id="gloss"></div>
 
     <section class="desk">

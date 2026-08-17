@@ -143,6 +143,8 @@ button {
 
 .rail__spacer { flex: 1; }
 
+.rail__group { display: inline-flex; align-items: center; gap: 0.5rem; }
+
 .rail__hint { color: var(--ink-faint); }
 @media (max-width: 32rem) { .rail__hint { display: none; } }
 
@@ -388,6 +390,62 @@ button {
 }
 .addslug:hover { border-color: var(--ink-faint); color: var(--ink); }
 .addslug:disabled { opacity: 0.3; cursor: default; }
+
+/* ── 자리 이름과 고정 표시 (격틀 모드) ──────────────── */
+
+.slug__head--role {
+  justify-content: center;
+  margin-bottom: 0.375rem;
+}
+
+/* 「대리점」이 지금의 방식인지 대상인지를 결정하는 정보이므로 흐리게 두지 않는다 */
+.slug__role {
+  font-family: var(--sans);
+  font-size: 0.75rem;
+  letter-spacing: 0.02em;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+.slug.is-set .slug__role { color: var(--indigo); }
+
+/* 연산자 자리 — 논항 셋과 같은 층위가 아니라는 것을 보이게 */
+.slug.is-operator {
+  background: linear-gradient(178deg, var(--paper-hi), var(--paper) 62%);
+  box-shadow:
+    0 5px 0 var(--rule),
+    0 7px 12px rgba(0, 0, 0, 0.1);
+}
+.slug.is-operator .slug__word { font-style: italic; }
+.slug.is-operator.is-set {
+  background: var(--paper-hi);
+  box-shadow:
+    0 0 0 1px var(--indigo-soft),
+    inset 0 2px 5px rgba(0, 0, 0, 0.14);
+}
+
+/* 카드를 눌러 잠긴 것을 고장으로 읽지 않게 — 상시 표시 */
+.slug__pinned {
+  display: block;
+  margin-top: 0.125rem;
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.08em;
+  color: var(--indigo);
+}
+
+/* ── 골격 문장 ──────────────────────────────────────── */
+
+.frame {
+  margin: 1.25rem 0 0;
+  font-family: var(--serif);
+  font-size: clamp(1.0625rem, 2.6vw, 1.1875rem);
+  line-height: 1.65;
+  color: var(--ink);
+  word-break: keep-all;
+}
+
+.frame__ask { color: var(--indigo); }
 
 /* ── TRIZ 원리 풀이 ─────────────────────────────────── */
 
