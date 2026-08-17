@@ -5,8 +5,11 @@
  * 단어를 잠그면 축도 따라 잠긴다 — 축이 바뀌면 그 단어가 존재할 수 없으므로.
  *
  * 모드는 사전과 축만 갈아끼운다. 슬롯의 `pos`는 그 칸이 뽑히는 축의 이름이며,
- * 글감 모드에서는 품사(형용사·명사…), 제품 모드에서는 기술·대상·마찰·포맷·비틀기다.
+ * 글감 모드에서는 품사(형용사·명사…), 제품 모드에서는 대상·마찰·지금의 방식·비틀기다.
  * 예전 기록과 호환을 지키려고 필드 이름은 `pos`를 그대로 쓴다.
+ *
+ * 제품 모드는 축을 무작위로 뽑지 않고 격틀을 고정한다. 이유는 words.js의 MODES
+ * 주석에 있다 — 그쪽 축은 범주가 아니라 격(case role)이다.
  */
 
 const HISTORY_CAP = 2000;
@@ -504,23 +507,25 @@ function renderFrame() {
   const body = args.map((s) => (FRAME_PIECE[s.pos] || ((w) => w))(s.word)).join(' ');
 
   el.classList.remove('hidden');
-  // 조사는 인용부호 안 단어의 끝을 따른다 — 「피드백」으로, 「복제」로
-  const ro = twist && jong(twist.word) === 'yes' ? '으로' : '로';
+  // 연산자 이름은 명사가 아니라 구일 수 있다(「쌓인 기록을 자산으로」). 조사를
+  // 붙이면 겹치므로, 이름을 그대로 지시문으로 받는 꼴을 쓴다.
   el.innerHTML =
     `<span class="frame__body">${body}</span>` +
-    (twist ? `<span class="frame__ask"> — 이걸 「${twist.word}」${ro} 비틀면?</span>` : '');
+    (twist ? `<span class="frame__ask"> — 이걸 「${twist.word}」 해보면?</span>` : '');
 }
 
 // 원리 이름만 찍힌 활자는 아무 생각도 불러오지 않는다. 설명은 카드를 키우지 않고
 // 조판대 아래 한 줄로 뺀다.
 function renderGloss() {
   const el = $('gloss');
-  const found = state.slots.filter((s) => TRIZ[s.word]);
+  const found = state.slots.filter((s) => TWIST[s.word]);
   el.classList.toggle('hidden', found.length === 0);
   el.innerHTML = found
     .map((s) => {
-      const t = TRIZ[s.word];
-      return `<p class="gloss__line"><span class="gloss__no">TRIZ ${t.no}</span>
+      const t = TWIST[s.word];
+      // 번호는 원전에서 온 카드에만 붙는다. 소프트웨어 고유 연산자에는 출처가 없다.
+      const tag = t.no ? `<span class="gloss__no">TRIZ ${t.no}</span>` : '';
+      return `<p class="gloss__line">${tag}
         <b>${s.word}</b><span class="gloss__dash">—</span>${t.hint}</p>`;
     })
     .join('');
@@ -632,8 +637,10 @@ function entryNode(e) {
 
   const words = e.slots
     .map((s) => {
-      const t = TRIZ[s.word];
-      const tip = t ? `${s.pos} · TRIZ ${t.no} — ${t.hint}` : `${s.pos} · 이 단어로 모아보기`;
+      const t = TWIST[s.word];
+      const tip = t
+        ? `${s.pos}${t.no ? ` · TRIZ ${t.no}` : ''} — ${t.hint}`
+        : `${s.pos} · 이 단어로 모아보기`;
       return `<button class="miniword" data-word="${s.word}" title="${tip}">${s.word}</button>`;
     })
     .join('');
